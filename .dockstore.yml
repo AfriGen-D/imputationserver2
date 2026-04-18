@@ -1,0 +1,12 @@
+version: 1.2
+workflows:
+  - subclass: nfl
+    primaryDescriptorPath: /main.nf
+    readMePath: /README.md
+    name: genotype-imputation
+    publish: true
+    topic: Genotype imputation pipeline using Minimac4 for imputation and Eagle for phasing. Based on Michigan Imputation Server 2 (imputationserver2), used by AfriGen-D FedImpute for federated imputation against African reference panels.
+    latestTagAsDefault: true
+    authors:
+      - name: AfriGen-D
+        email: support@bioinformaticsinstitute.africa
