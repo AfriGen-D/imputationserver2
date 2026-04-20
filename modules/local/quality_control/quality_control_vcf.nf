@@ -6,6 +6,7 @@ process QUALITY_CONTROL_VCF {
     publishDir params.output, mode: 'copy', pattern: "qc_report.txt"
     publishDir params.output, mode: 'copy', pattern: "qc_output.txt"
     publishDir params.output, mode: 'copy', pattern: "chunks_summary.txt"
+    publishDir params.output, mode: 'copy', pattern: "af_summary.txt"
     publishDir params.output, mode: 'copy', pattern: "${statisticsDir}/*.txt"
 
     input:
@@ -22,6 +23,7 @@ process QUALITY_CONTROL_VCF {
     path("qc_report.txt"), emit: qc_report
     path("qc_output.txt"), emit: qc_output, optional: true
     path("chunks_summary.txt"), emit: chunks_summary, optional: true
+    path("af_summary.txt"), emit: af_summary, optional: true
 
     script:
     chunksDir = 'chunks'
@@ -99,6 +101,22 @@ process QUALITY_CONTROL_VCF {
         echo "Chunks passed QC: \${chunks_passed}"
         echo "Chunks excluded: \${chunks_excluded}"
     } > chunks_summary.txt
+
+    # Emit af_summary.txt -- AF comparison stats from maf.txt (input AAF vs ref
+    # panel AAF). CHISQ > 300 = the per-site AF discrepancy is statistically
+    # improbable given sample size; common causes: genotyping errors, strand
+    # misalignment, wrong-population reference panel. Empty if AF check is off
+    # (params.allele_frequency_population == "off") since maf.txt is then absent.
+    if [[ -s ${mafFile} ]]; then
+        af_total=\$(tail -n +2 ${mafFile} | wc -l | tr -d ' ')
+        af_mismatches=\$(awk 'NR>1 && \$10+0 > 300' ${mafFile} | wc -l | tr -d ' ')
+        af_pct=\$(awk -v t="\${af_total}" -v m="\${af_mismatches}" 'BEGIN{printf "%.2f", (t>0 ? m/t*100 : 0)}')
+        {
+            echo "AF compared sites: \${af_total}"
+            echo "AF mismatches (CHISQ>300): \${af_mismatches}"
+            echo "AF mismatch rate: \${af_pct} %"
+        } > af_summary.txt
+    fi
 
     cat qc_report.txt
     cat qc_output.txt
