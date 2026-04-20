@@ -4,6 +4,7 @@ process QUALITY_CONTROL_VCF {
     
     label 'preprocessing'
     publishDir params.output, mode: 'copy', pattern: "qc_report.txt"
+    publishDir params.output, mode: 'copy', pattern: "qc_output.txt"
     publishDir params.output, mode: 'copy', pattern: "${statisticsDir}/*.txt"
 
     input:
@@ -18,6 +19,7 @@ process QUALITY_CONTROL_VCF {
     path("${statisticsDir}/*"), optional: true
     path("maf.txt"), emit: maf_file, optional: true
     path("qc_report.txt"), emit: qc_report
+    path("qc_output.txt"), emit: qc_output, optional: true
 
     script:
     chunksDir = 'chunks'

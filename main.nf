@@ -158,11 +158,33 @@ workflow.onComplete {
             if (params.send_mail && params.user.email != null) {
                 sendMail{
                     to "${params.user.email}"
-                    subject "[${params.service.name}] Job ${params.project} ${statusMessage}" 
+                    subject "[${params.service.name}] Job ${params.project} ${statusMessage}"
                     body "Dear ${params.user.name},\n${statusText}\n\nMore details can be found at the following link: ${params.service.url}/index.html#!jobs/${params.project_id}"
                 }
             }
-        println "::error:: Imputation job ${statusMessage}." 
+
+        // Surface a specific reason for QC failures by reading the published
+        // qc_output.txt (the QC sub-process's stdout normally stays in its
+        // work dir and never reaches the parent stdout that WES captures).
+        def errorDetail = workflow.errorReport ?: ""
+        if (errorDetail == "QC step failed") {
+            def qcFile = new File("${params.output}/qc_output.txt")
+            if (qcFile.exists()) {
+                def text = qcFile.text
+                def m = text =~ /(?s)::group type=error::\s*\n?(.*?)::endgroup::/
+                if (m.find()) {
+                    def block = m.group(1).trim()
+                        .replaceAll(/<[^>]+>/, '')         // strip HTML tags
+                        .replaceAll(/\s*\n+\s*/, '; ')     // newlines -> '; '
+                        .replaceAll(/;\s*;+/, ';')         // collapse repeats
+                    if (block) {
+                        errorDetail = "QC step failed -- ${block}"
+                    }
+                }
+            }
+        }
+
+        println "::error:: Imputation job ${statusMessage}: ${errorDetail ?: 'Unknown error'}"
         return
     }
 
