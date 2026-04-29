@@ -1,5 +1,3 @@
-<!-- markdownlint-disable MD013 MD024 MD051 -->
-
 # Errors and Troubleshooting
 
 This page documents the user-facing errors and warnings emitted by Imputation
@@ -13,7 +11,7 @@ log block surrounding the error.
 
 ---
 
-## No chunks passed the QC step { #no_imputable_chunks }
+## No chunks passed the QC step
 
 ### Message
 
@@ -84,7 +82,7 @@ allele or position checks.
 
 ---
 
-## Chunks excluded for too few SNPs { #chunks_excluded_low_snps }
+## Chunks excluded for too few SNPs
 
 ### Message
 
@@ -100,7 +98,7 @@ the reference panel. Chunks below that threshold are dropped from imputation.
 ### How to handle
 
 This is a warning when *some* chunks are excluded but the job still has work to
-do. It becomes the [`no_imputable_chunks`](#no_imputable_chunks) error when
+do. It becomes the [No chunks passed the QC step](#no-chunks-passed-the-qc-step) error when
 *every* chunk is excluded. If only a small fraction of chunks are dropped you
 can usually proceed; the excluded regions will simply have no imputed output.
 Inspect `chunks-excluded.txt` to confirm which regions are missing before using
@@ -108,7 +106,7 @@ the results downstream.
 
 ---
 
-## Malformed VCF file { #malformed_vcf }
+## Malformed VCF file
 
 ### Message
 
@@ -144,7 +142,7 @@ header is valid, and re-upload only after `tabix` exits cleanly.
 
 ---
 
-## No VCF input files detected { #no_input_files }
+## No VCF input files detected
 
 ### Message
 
@@ -166,7 +164,7 @@ zero matches.
 
 ---
 
-## Invalid phasing engine { #invalid_phasing_engine }
+## Invalid phasing engine
 
 ### Message
 
@@ -192,7 +190,7 @@ params {
 
 ---
 
-## Sample-count out of range { #sample_count }
+## Sample-count out of range
 
 ### Message
 
@@ -223,7 +221,7 @@ The number of samples exceeds the maximum allowed (<max>).
 
 ---
 
-## Imputation job failed { #imputation_failed }
+## Imputation job failed
 
 ### Message
 

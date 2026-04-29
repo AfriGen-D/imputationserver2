@@ -1,0 +1,32 @@
+{
+  "name": "imputationserver2-docs",
+  "version": "1.0.0",
+  "description": "AfriGen-D Imputation Server 2 documentation site (VitePress).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "markdown-it-task-lists": "^2.1.1",
+    "mermaid": "^11.14.0",
+    "vitepress": "^1.5.0",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  },
+  "keywords": [
+    "afrigen-d",
+    "imputation",
+    "nextflow",
+    "genomics",
+    "documentation"
+  ],
+  "author": "AfriGen-D Project",
+  "license": "MIT",
+  "homepage": "https://afrigen-d.github.io/imputationserver2/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AfriGen-D/imputationserver2.git"
+  }
+}

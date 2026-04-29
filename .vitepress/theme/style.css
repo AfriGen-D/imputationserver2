@@ -1,0 +1,101 @@
+/**
+ * AfriGen-D brand styling for ISB Cape Town 2026 workshop.
+ * Solid colours only (no gradients). Colours match the
+ * production AfriGen-D docs system:
+ *   red    #C94234  -- primary brand, links, buttons, hero kicker
+ *   yellow #F4A535  -- accent, warnings
+ *   green  #2E7D32  -- tips, successful-state highlights
+ */
+
+:root {
+  --vp-c-brand-1: #C94234;
+  --vp-c-brand-2: #F4A535;
+  --vp-c-brand-3: #2E7D32;
+
+  --vp-c-brand: var(--vp-c-brand-1);
+  --vp-c-brand-light: #E35948;
+  --vp-c-brand-lighter: #F07062;
+  --vp-c-brand-dark: #A93629;
+  --vp-c-brand-darker: #8A2B21;
+
+  --vp-c-accent: var(--vp-c-brand-2);
+
+  --vp-button-brand-bg: var(--vp-c-brand-1);
+  --vp-button-brand-border: var(--vp-c-brand-1);
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-hover-bg: var(--vp-c-brand-dark);
+  --vp-button-brand-hover-border: var(--vp-c-brand-dark);
+  --vp-button-brand-active-bg: var(--vp-c-brand-darker);
+  --vp-button-brand-active-border: var(--vp-c-brand-darker);
+}
+
+.dark {
+  --vp-c-brand-1: #E35948;
+  --vp-c-brand-2: #F7B74F;
+  --vp-c-brand-3: #4CAF50;
+
+  --vp-c-brand: var(--vp-c-brand-1);
+  --vp-c-brand-light: #F07062;
+  --vp-c-brand-lighter: #FF8A7A;
+  --vp-c-brand-dark: #C94234;
+  --vp-c-brand-darker: #A93629;
+}
+
+/* Feature cards get a subtle brand-coloured hover border */
+.VPFeature {
+  border: 1px solid var(--vp-c-divider);
+  transition: border-color 0.25s, transform 0.25s;
+}
+
+.VPFeature:hover {
+  border-color: var(--vp-c-brand-1);
+  transform: translateY(-2px);
+}
+
+/* Doc body link emphasis */
+.vp-doc a {
+  color: var(--vp-c-brand-1);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.25s;
+}
+
+.vp-doc a:hover {
+  text-decoration-color: var(--vp-c-brand-1);
+}
+
+/* Responsive YouTube / video embeds.
+   Wrap an <iframe> in <div class="youtube-embed">
+   for a 16:9 block that fills the content column. */
+.youtube-embed {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  margin: 1.5rem 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+}
+
+.youtube-embed iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Admonition blocks: reinforce brand palette */
+.custom-block.tip {
+  border-color: var(--vp-c-brand-3);
+}
+
+.custom-block.warning {
+  border-color: var(--vp-c-brand-2);
+}
+
+.custom-block.danger {
+  border-color: var(--vp-c-brand-1);
+}
+

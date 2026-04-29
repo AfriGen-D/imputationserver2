@@ -9,3 +9,8 @@ cloudgene.report.json
 .nf-test.log
 imputationserver2.iml
 .idea
+
+# VitePress
+node_modules
+.vitepress/cache
+.vitepress/dist
