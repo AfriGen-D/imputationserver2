@@ -32,6 +32,7 @@ extra_css:
 
 nav:
 - Home: index.md
+- Errors: errors.md
 - Contact: contact.md
 
 
