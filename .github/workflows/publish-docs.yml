@@ -29,7 +29,7 @@ jobs:
 
       - name: Deploy MkDocs
         run: |
-          git fetch origin gh-pages:gh-pages
+          git fetch origin gh-pages:gh-pages || true
           mkdocs gh-deploy --force
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
