@@ -205,5 +205,50 @@ workflow.onComplete {
     } else {
         println "::message:: Data have been exported successfully."
     }
- 
+
+}
+
+// Emit a structured error descriptor under `${params.logs}/fedimpute_error.json`
+// (see docs/PIPELINE_ERROR_SCHEMA.md in the fedimpute repo). The FedImpute
+// backend reads this file via the WES outputs endpoint and renders a typed
+// error UI with a "Error docs ↗" deep-link to the workflow's docs site;
+// if the file is absent the backend falls back to parsing stdout.
+def emitStructuredError(Map err) {
+    try {
+        def logsPath
+        if (params.containsKey('logs') && params.logs) {
+            logsPath = "${params.logs}"
+        } else if (params.containsKey('output') && params.output) {
+            logsPath = "${params.output}/logs"
+        } else {
+            logsPath = "${workflow.launchDir}/logs"
+        }
+        def logsDir = file(logsPath)
+        logsDir.mkdirs()
+        def payload = [version: "1"] + err
+        file("${logsPath}/fedimpute_error.json").text =
+            groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(payload))
+    } catch (Exception e) {
+        log.warn "Failed to write fedimpute_error.json: ${e.message}"
+    }
+}
+
+// Classify INPUT_VALIDATION_VCF failures into structured error codes so the
+// FedImpute UI can deep-link to a specific section of the workflow's docs
+// site (https://afrigen-d.github.io/imputationserver2/errors). The validator
+// (imputationserver-utils.jar) writes its message into validation_report.txt
+// which the process cats to stdout — that text reaches us via
+// workflow.errorMessage. Add a new (regex, code, anchor) tuple here when a
+// new user-facing error gains a docs entry.
+workflow.onError {
+    def msg = (workflow.errorMessage ?: '').toString()
+
+    if (msg =~ /(?i)contains more than one chromosome/) {
+        emitStructuredError([
+            code: 'MULTI_CHROMOSOME_VCF',
+            severity: 'user_error',
+            summary: 'VCF contains more than one chromosome — split by chromosome and resubmit.',
+            docs_anchor: 'vcf-contains-more-than-one-chromosome',
+        ])
+    }
 }
