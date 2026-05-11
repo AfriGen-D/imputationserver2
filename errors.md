@@ -247,3 +247,45 @@ The status message is the diagnostic. The most common variants:
 Inspect `.nextflow.log` in the work directory for the failing process and its
 exit code, then forward the bottom 200 lines to the service administrator if
 the cause is not obvious.
+
+---
+
+## VCF contains more than one chromosome
+
+### Message
+
+```text
+The provided VCF file contains more than one chromosome. Please split your input VCF file by chromosome
+```
+
+### Where it comes from
+
+Emitted by `imputationserver-utils.jar validate` during the
+`INPUT_VALIDATION_VCF` step
+(`modules/local/input_validation/input_validation_vcf.nf`). The pipeline
+expects one VCF per chromosome — chunking, phasing, and imputation are
+parallelised over chromosomes, so a single multi-chromosome file would
+serialise the entire run.
+
+### How to fix
+
+Split the input by chromosome with bcftools and submit the per-chromosome
+files together (the form accepts multiple files in one submission, and the
+pipeline imputes them in parallel):
+
+```bash
+# Inspect which contigs are present
+bcftools index --stats input.vcf.gz | cut -f1
+
+# Split per chromosome (assumes the VCF is sorted and tabix-indexed)
+for chr in $(bcftools index --stats input.vcf.gz | cut -f1); do
+    bcftools view -r "$chr" input.vcf.gz -Oz -o "input.${chr}.vcf.gz"
+    bcftools index -t "input.${chr}.vcf.gz"
+done
+```
+
+If your VCF is not tabix-indexed yet, run `bcftools sort input.vcf -Oz -o
+input.sorted.vcf.gz && bcftools index -t input.sorted.vcf.gz` first.
+
+Submit all `input.${chr}.vcf.gz` files in a single job — the pipeline groups
+them into one run.
