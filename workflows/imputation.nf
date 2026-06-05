@@ -36,25 +36,35 @@ workflow IMPUTATION {
     skip_lowdensity = params.refpanel.sites_pattern != null && params.imputation.skip_lowdensity_chunks != false
 
     if (skip_lowdensity) {
-        // Separate chromosome source: `chromosomes` is a one-shot queue channel
-        // already drained by minimac_m3vcf_ch above, so reusing it here would
-        // yield an empty channel (and silently skip all imputation).
-        minimac_sites_ch = Channel.of(1..22, 'X.nonPAR', 'X.PAR1', 'X.PAR2', 'MT')
-            .map {
-                it ->
-                    def sites_path = PatternUtil.parse(params.refpanel.sites_pattern, [chr: it])
-                    def sites_file = file(sites_path)
-                    def sites_tbi  = file(sites_path + '.tbi')
-                    if (!sites_file.exists() || !sites_tbi.exists()) {
-                        return null;
-                    }
-                    return tuple(it.toString(), sites_file, sites_tbi);
-            }
+        // Resolve which chromosomes actually ship a tabix-indexed sites legend.
+        // Built eagerly as a plain map (chr -> absolute legend path), not a
+        // channel, so we can branch on membership without consuming a queue
+        // channel twice.
+        def chr_list = (1..22).collect { it.toString() } + ['X.nonPAR', 'X.PAR1', 'X.PAR2', 'MT']
+        def sites_map = chr_list.collectEntries { c ->
+            def sp = PatternUtil.parse(params.refpanel.sites_pattern, [chr: c])
+            (file(sp).exists() && file(sp + '.tbi').exists()) ? [(c): sp] : [:]
+        }
 
-        checked_ch = phased_m3vcf_ch.combine(minimac_sites_ch, by: 0)
+        // Chunks whose chromosome has a legend go through the density filter;
+        // chunks without one (e.g. chrX PAR regions on panels that ship only a
+        // single chrX legend, or any chr lacking a sites file) pass straight to
+        // minimac4 -- never silently dropped just because we couldn't evaluate
+        // them. minimac4 stays the authority for anything we can't pre-check.
+        phased_m3vcf_ch
+            .branch {
+                has_sites: sites_map.containsKey(it[0])
+                no_sites:  true
+            }
+            .set { by_sites }
+
+        to_filter_ch = by_sites.has_sites.map { row ->
+            def sp = sites_map[row[0]]
+            tuple(row[0], row[1], row[2], row[3], row[4], row[5], file(sp), file(sp + '.tbi'))
+        }
 
         FILTER_LOWDENSITY_CHUNKS(
-            checked_ch,
+            to_filter_ch,
             params.refpanel.build,
             params.imputation.minimac_min_ratio
         )
@@ -78,7 +88,7 @@ workflow IMPUTATION {
                 seed: "CHUNK\tCHROM\tREGION\tTYPED\tIMPUTED\tRATIO\n"
             )
 
-        minimac_in_ch = density_branched.keep.map { it[0..5] }
+        minimac_in_ch = density_branched.keep.map { it[0..5] }.mix(by_sites.no_sites)
     } else {
         minimac_in_ch = phased_m3vcf_ch
     }
