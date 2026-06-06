@@ -1,0 +1,105 @@
+nextflow_process {
+
+    name "Test Process FilterLowDensityChunks"
+    script "modules/local/imputation/filter_lowdensity_chunks.nf"
+    process "FILTER_LOWDENSITY_CHUNKS"
+
+    // Drives both branches via min_ratio against a real chunk + sites legend:
+    // typed/imputed is small but non-zero, so min_ratio 0.0 keeps and a high
+    // min_ratio drops -- no need for hand-crafted sparse fixtures.
+
+    test("Should keep a chunk whose ratio meets min-ratio") {
+
+        when {
+            params {
+                refpanel = [ build: "hg19" ]
+            }
+            process {
+                """
+                input[0] = tuple(
+                    "20", 1, 100000000, "status",
+                    file("${projectDir}/tests/data/input/chr20-phased/chr20.R50.merged.1.330k.recode.small.vcf.gz"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/msavs/hapmap_r22.chr20.CEU.hg19.msav"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/sites/hapmap_r22.chr20.CEU.hg19_impute.sites.gz"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/sites/hapmap_r22.chr20.CEU.hg19_impute.sites.gz.tbi")
+                )
+                input[1] = params.refpanel.build
+                input[2] = 0.0
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            // checked tuple: (chr, start, end, status, chunkfile, m3vcf, keep)
+            assert process.out.checked.get(0).get(6) == "true"
+            // nothing skipped
+            assert process.out.skipped.size() == 0
+        }
+
+    }
+
+    test("Should drop a chunk below min-ratio and record it") {
+
+        when {
+            params {
+                refpanel = [ build: "hg19" ]
+            }
+            process {
+                """
+                input[0] = tuple(
+                    "20", 1, 100000000, "status",
+                    file("${projectDir}/tests/data/input/chr20-phased/chr20.R50.merged.1.330k.recode.small.vcf.gz"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/msavs/hapmap_r22.chr20.CEU.hg19.msav"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/sites/hapmap_r22.chr20.CEU.hg19_impute.sites.gz"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/sites/hapmap_r22.chr20.CEU.hg19_impute.sites.gz.tbi")
+                )
+                input[1] = params.refpanel.build
+                input[2] = 0.99
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            assert process.out.checked.get(0).get(6) == "false"
+            // the dropped chunk is recorded for the skipped-chunks report
+            assert process.out.skipped.size() == 1
+            assert path(process.out.skipped.get(0)).text.contains("20")
+        }
+
+    }
+
+    test("Should keep the chunk (fail-safe) when the legend is unreadable") {
+
+        when {
+            params {
+                refpanel = [ build: "hg19" ]
+            }
+            process {
+                """
+                // chr2 legend queried for a chr20 region returns no panel
+                // sites (imputed == 0), so the chunk can't be evaluated.
+                input[0] = tuple(
+                    "20", 1, 100000000, "status",
+                    file("${projectDir}/tests/data/input/chr20-phased/chr20.R50.merged.1.330k.recode.small.vcf.gz"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/msavs/hapmap_r22.chr20.CEU.hg19.msav"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/sites/hapmap_r22.chr2.CEU.hg19_impute.sites.gz"),
+                    file("${projectDir}/tests/data/refpanels/hapmap2/sites/hapmap_r22.chr2.CEU.hg19_impute.sites.gz.tbi")
+                )
+                input[1] = params.refpanel.build
+                input[2] = 0.99
+                """
+            }
+        }
+
+        then {
+            assert process.success
+            // imputed == 0 -> keep (never block a chunk we cannot evaluate)
+            assert process.out.checked.get(0).get(6) == "true"
+            assert process.out.skipped.size() == 0
+        }
+
+    }
+
+}
