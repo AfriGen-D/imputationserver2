@@ -106,6 +106,76 @@ the results downstream.
 
 ---
 
+## Chunks skipped before imputation (low reference overlap)
+
+### Message
+
+```text
+WARN: Skipping low-density chunk <chunk> (<chr>:<start>-<end>): typed/imputed
+below minimac4 --min-ratio (1.0E-5); region will be absent from the result
+```
+
+The skipped regions are also recorded in `chunks-skipped-imputation.txt` in the
+job output:
+
+```text
+CHUNK                                   CHROM  REGION       TYPED  IMPUTED  RATIO
+chunk_20_0000000001_0020000000.phased   chr20  1-20000000   4      462978   8.6397e-06
+```
+
+(the file itself is tab-separated; columns are shown aligned here for
+readability)
+
+### Trigger
+
+This is **distinct from** the QC `chunks-excluded.txt` step above. It runs
+*after* QC and phasing, immediately before imputation, in the
+`FILTER_LOWDENSITY_CHUNKS` process
+(`modules/local/imputation/filter_lowdensity_chunks.nf`).
+
+For each chunk it computes the same ratio Minimac4 itself enforces — the number
+of **typed** sites (your genotyped variants that overlap the panel) divided by
+the number of **imputed** sites (reference-panel sites in that region). A chunk
+whose ratio falls below `--min-ratio` (default `1e-5`) is skipped, rather than
+sent to Minimac4 where it would abort the **entire** multi-chromosome run with a
+non-zero exit. The rest of the run completes normally and the skipped region is
+recorded for you.
+
+### Why the region is skipped rather than imputed
+
+Two reasons, both intentional:
+
+1. **Quality.** A region with only a handful of typed markers across 20 Mb has
+   too little information to impute reliably — the output would be near-random
+   (R² ≈ 0). Minimac4 refuses such regions by design.
+2. **Reference-panel protection.** When almost no typed markers constrain the
+   output, the "imputed" genotypes are reconstructed almost entirely *from the
+   reference panel* rather than from your data. Emitting them would disclose
+   the panel's genotypes/haplotypes. For controlled-access panels (e.g. the
+   H3Africa panels) this matters, so the overlap floor is enforced **per
+   region** — it is deliberately *not* relaxed globally, and low-overlap chunks
+   are *not* merged with denser neighbours to slip past the threshold.
+
+### What it means for your results
+
+- The listed regions are **absent** from the per-chromosome dose VCF (the
+  imputed output simply starts at the next chunk).
+- Your own genotyped markers for those regions are **not lost from your data** —
+  they remain in the VCF you uploaded; they are only absent from the imputation
+  *result*.
+
+### How to handle
+
+- A few skipped chunks on an otherwise dense dataset are normal; proceed and
+  treat those regions as having no imputed coverage.
+- **Many** skipped chunks indicate your data has low overlap with the chosen
+  panel — usually a build mismatch, wrong chromosome encoding, or a
+  panel/population mismatch. See
+  [No chunks passed the QC step](#no-chunks-passed-the-qc-step) for the same
+  root causes and fixes.
+
+---
+
 ## Malformed VCF file
 
 ### Message

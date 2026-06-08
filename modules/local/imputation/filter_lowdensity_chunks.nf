@@ -28,6 +28,18 @@ process FILTER_LOWDENSITY_CHUNKS {
     // Fail-safe: if the legend can't be read (missing index, tabix error), we
     // keep the chunk and let minimac4 be the authority -- we never block a
     // chunk we couldn't actually evaluate.
+    //
+    // DO NOT "fix" low-overlap regions by lowering --min-ratio or by merging a
+    // sparse chunk with a denser neighbour. The ratio floor is also a
+    // REFERENCE-PANEL DISCLOSURE CONTROL: with too few typed markers the output
+    // is reconstructed almost entirely from the panel (not the target), so
+    // emitting it would leak the panel's genotypes/haplotypes -- a real concern
+    // for controlled-access panels (e.g. H3Africa). The control only works if
+    // enforced PER REGION; a global relaxation, or aggregating a sparse region
+    // with a dense one, launders a low-overlap region past the floor and
+    // reopens the leak. If a skipped region's typed markers must be preserved,
+    // the only privacy-safe route is to carry the user's OWN genotyped sites
+    // through as TYPED rows at the merge step -- never to impute the gap.
     """
     tabix -f -p vcf ${chunkfile} 2>/dev/null || true
 
